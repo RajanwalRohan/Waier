@@ -10,6 +10,7 @@ import {
   requireAuthOrRespond,
 } from "@/lib/api-utils";
 import { syncWearableSchema } from "@/lib/validations/wearable";
+import { safeDecrypt } from "@/lib/crypto";
 
 /**
  * POST /api/wearables/sync
@@ -48,10 +49,12 @@ export async function POST(request: Request) {
       return errorResponse("No active connection for this provider", 404);
     }
 
-    // TODO: Call the provider API to fetch latest data
+    // Decrypt the stored access token for provider API calls
+    const _accessToken = safeDecrypt(connection.accessToken);
+
+    // TODO: Call the provider API with _accessToken to fetch latest data
     // TODO: Parse and validate the response
     // TODO: Store new health metrics via db.healthMetric.createMany()
-    // TODO: Update connection.lastSyncAt
 
     await db.wearableConnection.update({
       where: { id: connection.id },

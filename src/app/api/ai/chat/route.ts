@@ -69,7 +69,7 @@ export async function POST(request: Request) {
           sex: profile.sex,
           fitnessGoal: profile.fitnessGoal,
           activityLevel: profile.activityLevel,
-          dietaryPreferences: profile.dietaryPreferences,
+          dietaryPreferences: JSON.parse(profile.dietaryPreferences || "[]"),
         }
       : null;
 

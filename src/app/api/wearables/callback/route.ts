@@ -17,8 +17,8 @@ import { safeEncrypt } from "@/lib/crypto";
  *
  * SECURITY:
  *  - Validates provider, code, and state params.
- *  - State should be verified against server-side store (TODO).
- *  - Tokens are stored encrypted (application-layer encryption TODO).
+ *  - State is verified against server-side store with TTL and ownership check.
+ *  - Tokens are stored encrypted via AES-256-GCM (application-layer encryption).
  *  - Rate limited to prevent callback replay attacks.
  */
 export async function GET(request: Request) {
@@ -85,7 +85,7 @@ export async function GET(request: Request) {
         provider: data.provider,
         accessToken: encryptedToken,
         isActive: true,
-        scopes: [],
+        scopes: "[]",
       },
       update: {
         accessToken: encryptedToken,

@@ -69,7 +69,7 @@ export async function PUT(request: Request) {
     const data = updateProfileSchema.parse(body);
 
     // Separate user-level fields from profile fields
-    const { name, ...profileData } = data;
+    const { name, dietaryPreferences, ...profileFields } = data;
 
     if (name !== undefined) {
       await db.user.update({
@@ -77,6 +77,14 @@ export async function PUT(request: Request) {
         data: { name },
       });
     }
+
+    // SQLite stores arrays as JSON strings
+    const profileData = {
+      ...profileFields,
+      ...(dietaryPreferences !== undefined
+        ? { dietaryPreferences: JSON.stringify(dietaryPreferences) }
+        : {}),
+    };
 
     const profile = await db.profile.upsert({
       where: { userId: session.user.id },

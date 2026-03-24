@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -15,12 +15,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -80,7 +80,7 @@ model Profile {
   sex                 String?  // male | female | other | prefer_not_to_say
   fitnessGoal         String?  // lose_weight | gain_muscle | maintain | improve_endurance | general_health
   activityLevel       String?  // sedentary | lightly_active | moderately_active | very_active | extremely_active
-  dietaryPreferences  String[] @default([])
+  dietaryPreferences  String   @default("[]") // JSON array of strings
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -91,8 +91,8 @@ model Workout {
   id         String     @id @default(cuid())
   userId     String
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String     @db.VarChar(200)
-  notes      String?    @db.VarChar(2000)
+  name       String
+  notes      String?
   durationMin Int?
   date       DateTime
   exercises  Exercise[]
@@ -106,12 +106,12 @@ model Exercise {
   id        String  @id @default(cuid())
   workoutId String
   workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
-  name      String  @db.VarChar(200)
+  name      String
   sets      Int?
   reps      Int?
   weightKg  Float?
   durationSec Int?
-  notes     String? @db.VarChar(500)
+  notes     String?
   order     Int     @default(0)
 
   @@index([workoutId])
@@ -123,8 +123,8 @@ model Meal {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String   @db.VarChar(200)
-  description String?  @db.VarChar(2000)
+  name        String
+  description String?
   calories    Float?
   proteinG    Float?
   carbsG      Float?
@@ -147,8 +147,8 @@ model HealthMetric {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      String   // steps | heart_rate | sleep_hours | calories_burned | blood_oxygen | respiratory_rate | hrv | weight
   value     Float
-  unit      String   @db.VarChar(30)
-  source    String?  @db.VarChar(50) // manual | fitbit | apple_health | garmin | google_fit
+  unit      String
+  source    String?  // manual | fitbit | apple_health | garmin | google_fit
   date      DateTime
   createdAt DateTime @default(now())
 
@@ -161,12 +161,12 @@ model WearableConnection {
   id           String    @id @default(cuid())
   userId       String
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider     String    @db.VarChar(50) // fitbit | apple_health | garmin | google_fit
+  provider     String    // fitbit | apple_health | garmin | google_fit
   // Tokens are stored encrypted at the application layer.
-  accessToken  String    @db.Text
-  refreshToken String?   @db.Text
+  accessToken  String
+  refreshToken String?
   expiresAt    DateTime?
-  scopes       String[]  @default([])
+  scopes       String    @default("[]") // JSON array of strings
   isActive     Boolean   @default(true)
   lastSyncAt   DateTime?
   createdAt    DateTime  @default(now())
@@ -182,7 +182,7 @@ model OAuthState {
   id        String   @id @default(cuid())
   state     String   @unique
   userId    String
-  provider  String   @db.VarChar(50)
+  provider  String
   expiresAt DateTime
   createdAt DateTime @default(now())
 
@@ -196,7 +196,7 @@ model AIConversation {
   id        String      @id @default(cuid())
   userId    String
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String?     @db.VarChar(200)
+  title     String?
   messages  AIMessage[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -208,8 +208,8 @@ model AIMessage {
   id             String         @id @default(cuid())
   conversationId String
   conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  role           String         @db.VarChar(20) // user | assistant | system
-  content        String         @db.Text
+  role           String         // user | assistant | system
+  content        String
   createdAt      DateTime       @default(now())
 
   @@index([conversationId])

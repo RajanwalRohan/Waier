@@ -12,7 +12,7 @@ const serverEnvSchema = z.object({
   NEXTAUTH_SECRET: z
     .string()
     .min(32, "NEXTAUTH_SECRET must be ≥ 32 characters"),
-  NEXTAUTH_URL: z.string().url("NEXTAUTH_URL must be a valid URL"),
+  NEXTAUTH_URL: z.string().min(1, "NEXTAUTH_URL is required"),
 
   // AI — at least one provider key should be set in production
   OPENAI_API_KEY: z.string().min(1).optional(),
