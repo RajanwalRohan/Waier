@@ -59,7 +59,11 @@ export function middleware(request: NextRequest) {
   response.headers.set("X-Request-Id", nonce);
 
   // ── Block non-JSON bodies on API mutation routes ──────────
-  if (request.nextUrl.pathname.startsWith("/api/")) {
+  // Skip NextAuth routes — they use application/x-www-form-urlencoded
+  if (
+    request.nextUrl.pathname.startsWith("/api/") &&
+    !request.nextUrl.pathname.startsWith("/api/auth/")
+  ) {
     const method = request.method.toUpperCase();
     if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
       const contentType = request.headers.get("content-type") ?? "";
