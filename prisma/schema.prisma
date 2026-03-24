@@ -190,6 +190,23 @@ model OAuthState {
   @@index([expiresAt])
 }
 
+// ─── Password Reset Tokens ────────────────────────────────
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  // Store the SHA-256 hash of the token, not the plaintext.
+  // The plaintext token is sent to the user via email; we only
+  // store the hash so a DB leak doesn't compromise reset links.
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
+
 // ─── AI Coaching Conversations ────────────────────────────
 
 model AIConversation {

@@ -38,8 +38,28 @@ export function safeString(maxLength: number) {
 /** Constrained email. */
 export const emailSchema = z.string().email().max(255).trim().toLowerCase();
 
-/** Secure password — min 8 chars, max 128 chars. */
+/**
+ * Password requirements (shared with frontend checklist):
+ *  - 12+ characters
+ *  - At least 1 uppercase letter
+ *  - At least 1 lowercase letter
+ *  - At least 2 numbers
+ *  - At least 1 special character
+ */
+export const PASSWORD_RULES = {
+  minLength: 12,
+  maxLength: 128,
+  uppercase: /[A-Z]/,
+  lowercase: /[a-z]/,
+  numbers: /(?:.*\d){2,}/, // at least 2 digits anywhere
+  special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/,
+} as const;
+
 export const passwordSchema = z
   .string()
-  .min(8, "Password must be at least 8 characters")
-  .max(128, "Password must be at most 128 characters");
+  .min(PASSWORD_RULES.minLength, `Password must be at least ${PASSWORD_RULES.minLength} characters`)
+  .max(PASSWORD_RULES.maxLength, `Password must be at most ${PASSWORD_RULES.maxLength} characters`)
+  .regex(PASSWORD_RULES.uppercase, "Password must contain at least 1 uppercase letter")
+  .regex(PASSWORD_RULES.lowercase, "Password must contain at least 1 lowercase letter")
+  .regex(PASSWORD_RULES.numbers, "Password must contain at least 2 numbers")
+  .regex(PASSWORD_RULES.special, "Password must contain at least 1 special character");

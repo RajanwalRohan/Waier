@@ -1,9 +1,80 @@
 import { describe, it, expect } from "vitest";
-import { signupSchema } from "@/lib/validations/auth";
+import { signupSchema, forgotPasswordSchema, resetPasswordSchema } from "@/lib/validations/auth";
+import { passwordSchema } from "@/lib/validations/common";
 import { updateProfileSchema } from "@/lib/validations/profile";
 import { createWorkoutSchema } from "@/lib/validations/workout";
 import { connectWearableSchema, wearableCallbackSchema } from "@/lib/validations/wearable";
 import { aiChatSchema } from "@/lib/validations/ai-chat";
+
+// ─── Password Strength Rules ──────────────────────────────
+
+describe("passwordSchema", () => {
+  it("accepts a strong password", () => {
+    expect(passwordSchema.safeParse("MyStr0ng!Pa55").success).toBe(true);
+  });
+
+  it("rejects password shorter than 12 chars", () => {
+    expect(passwordSchema.safeParse("Short1!aB").success).toBe(false);
+  });
+
+  it("rejects password without uppercase", () => {
+    expect(passwordSchema.safeParse("alllowercase12!").success).toBe(false);
+  });
+
+  it("rejects password without lowercase", () => {
+    expect(passwordSchema.safeParse("ALLUPPERCASE12!").success).toBe(false);
+  });
+
+  it("rejects password with only 1 number", () => {
+    expect(passwordSchema.safeParse("NoNumbers1Here!").success).toBe(false);
+  });
+
+  it("rejects password without special character", () => {
+    expect(passwordSchema.safeParse("NoSpecialChar12").success).toBe(false);
+  });
+
+  it("accepts password at exactly 12 chars meeting all rules", () => {
+    expect(passwordSchema.safeParse("Abcdefgh12!@").success).toBe(true);
+  });
+});
+
+// ─── Forgot / Reset Password Schemas ──────────────────────
+
+describe("forgotPasswordSchema", () => {
+  it("accepts valid email", () => {
+    expect(forgotPasswordSchema.safeParse({ email: "user@test.com" }).success).toBe(true);
+  });
+
+  it("rejects invalid email", () => {
+    expect(forgotPasswordSchema.safeParse({ email: "not-email" }).success).toBe(false);
+  });
+});
+
+describe("resetPasswordSchema", () => {
+  it("accepts valid token and strong password", () => {
+    const result = resetPasswordSchema.safeParse({
+      token: "abc123def456",
+      password: "NewSecure12!@",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty token", () => {
+    const result = resetPasswordSchema.safeParse({
+      token: "",
+      password: "NewSecure12!@",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects weak password in reset", () => {
+    const result = resetPasswordSchema.safeParse({
+      token: "valid-token",
+      password: "weak",
+    });
+    expect(result.success).toBe(false);
+  });
+});
 
 // ─── Auth Validation ──────────────────────────────────────
 
@@ -11,7 +82,7 @@ describe("signupSchema", () => {
   it("accepts valid signup data", () => {
     const result = signupSchema.safeParse({
       email: "Test@Example.com",
-      password: "securepass123",
+      password: "SecurePass12!",
       name: "Test User",
     });
     expect(result.success).toBe(true);
@@ -31,7 +102,7 @@ describe("signupSchema", () => {
   it("rejects invalid email", () => {
     const result = signupSchema.safeParse({
       email: "not-an-email",
-      password: "securepass123",
+      password: "SecurePass12!",
     });
     expect(result.success).toBe(false);
   });
@@ -47,7 +118,7 @@ describe("signupSchema", () => {
   it("strips HTML from name", () => {
     const result = signupSchema.safeParse({
       email: "test@example.com",
-      password: "securepass123",
+      password: "SecurePass12!",
       name: "<script>alert('xss')</script>User",
     });
     expect(result.success).toBe(true);
