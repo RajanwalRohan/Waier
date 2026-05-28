@@ -6,6 +6,8 @@ The core thesis: wearables collect data well but give shallow insights. Waier is
 
 > Mobile-first Progressive Web App with a liquid glass UI design language.
 
+This public repository is a sanitized portfolio snapshot. The product requirements document, private planning notes, environment files, and build artifacts are intentionally omitted. The code and this README convey the architecture, feature set, and security posture without exposing confidential planning material.
+
 ---
 
 ## Highlights
@@ -93,7 +95,7 @@ prisma/           Database schema and seed scripts
 
 ## Roadmap
 
-The current build is the MVP (Phase 1). Future phases include deeper wearable integrations, AI-generated periodized training plans, shareable progress summaries, social features, and an eventual proprietary wearable device. See the included PRD for the full product specification.
+The current build is the MVP (Phase 1). Future phases expand wearable integrations, AI-generated training plans, social features, and richer progress insights. Detailed product specifications are maintained in a private planning document and are not part of this public snapshot.
 
 ## Author
 
