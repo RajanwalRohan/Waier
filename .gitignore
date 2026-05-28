@@ -54,3 +54,6 @@ next-env.d.ts
 # Internal/personal docs not for distribution
 /early context - idea.txt
 /AI_Health_Coach_Security_Report.html
+
+# Confidential planning documents - never publish (PRD and drafts, any version)
+/Waier PRD*
