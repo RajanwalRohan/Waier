@@ -84,6 +84,12 @@ describe("signupSchema", () => {
       email: "Test@Example.com",
       password: "SecurePass12!",
       name: "Test User",
+      dateOfBirth: "1995-06-15",
+      sex: "male",
+      heightCm: 175,
+      weightKg: 75,
+      activityLevel: "moderately_active",
+      medicalConditions: ["Hypertension"],
     });
     expect(result.success).toBe(true);
     if (result.success) {
@@ -120,6 +126,12 @@ describe("signupSchema", () => {
       email: "test@example.com",
       password: "SecurePass12!",
       name: "<script>alert('xss')</script>User",
+      dateOfBirth: "1995-06-15",
+      sex: "female",
+      heightCm: 165,
+      weightKg: 60,
+      activityLevel: "lightly_active",
+      medicalConditions: ["None"],
     });
     expect(result.success).toBe(true);
     if (result.success) {

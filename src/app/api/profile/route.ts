@@ -69,7 +69,10 @@ export async function PUT(request: Request) {
     const data = updateProfileSchema.parse(body);
 
     // Separate user-level fields from profile fields
-    const { name, dietaryPreferences, ...profileFields } = data;
+    const {
+      name, dietaryPreferences, medicalConditions, foodAllergies, medicalNotes,
+      fitnessGoals, exercisePreferences, ...profileFields
+    } = data;
 
     if (name !== undefined) {
       await db.user.update({
@@ -84,6 +87,19 @@ export async function PUT(request: Request) {
       ...(dietaryPreferences !== undefined
         ? { dietaryPreferences: JSON.stringify(dietaryPreferences) }
         : {}),
+      ...(medicalConditions !== undefined
+        ? { medicalConditions: JSON.stringify(medicalConditions) }
+        : {}),
+      ...(foodAllergies !== undefined
+        ? { foodAllergies: JSON.stringify(foodAllergies) }
+        : {}),
+      ...(fitnessGoals !== undefined
+        ? { fitnessGoals: JSON.stringify(fitnessGoals) }
+        : {}),
+      ...(exercisePreferences !== undefined
+        ? { exercisePreferences: JSON.stringify(exercisePreferences) }
+        : {}),
+      ...(medicalNotes !== undefined ? { medicalNotes } : {}),
     };
 
     const profile = await db.profile.upsert({

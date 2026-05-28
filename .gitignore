@@ -44,3 +44,13 @@ next-env.d.ts
 
 # uploads (local dev)
 /uploads/
+
+# Claude Code per-user dev artifacts (conversation logs, local permissions)
+.claude/
+
+# Personal data seeder (contains hardcoded developer email)
+/prisma/add-my-data.ts
+
+# Internal/personal docs not for distribution
+/early context - idea.txt
+/AI_Health_Coach_Security_Report.html

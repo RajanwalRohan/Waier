@@ -1,0 +1,65 @@
+# Docker Compose for Waier + Open Wearables
+#
+# Usage:
+#   docker compose up -d
+#
+# SECURITY:
+#   - Open Wearables is NOT exposed to the internet — only accessible
+#     within the Docker network. Waier receives data via webhook.
+#   - All sensitive values are pulled from .env (never committed to git).
+#   - Health data volumes are encrypted at rest (use encrypted Docker volumes
+#     or an encrypted filesystem in production).
+
+services:
+  waier:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:./prisma/dev.db
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - OPEN_WEARABLES_URL=http://open-wearables:8080
+      - OPEN_WEARABLES_WEBHOOK_SECRET=${OPEN_WEARABLES_WEBHOOK_SECRET}
+      - OPEN_WEARABLES_ALLOWED_IPS=172.18.0.0/16
+      - RATE_LIMIT_ENABLED=true
+      - NODE_ENV=production
+    volumes:
+      - waier-data:/app/prisma
+    depends_on:
+      open-wearables:
+        condition: service_started
+    networks:
+      - internal
+    restart: unless-stopped
+
+  open-wearables:
+    image: ghcr.io/open-wearables/open-wearables:latest
+    environment:
+      - OW_WEBHOOK_URL=http://waier:3000/api/wearables/ingest
+      - OW_WEBHOOK_SECRET=${OPEN_WEARABLES_WEBHOOK_SECRET}
+      - OW_DATABASE_URL=file:./data/ow.db
+    volumes:
+      - ow-data:/app/data
+    # NOT exposed to host — only accessible within the Docker network
+    expose:
+      - "8080"
+    networks:
+      - internal
+    restart: unless-stopped
+
+volumes:
+  waier-data:
+    driver: local
+  ow-data:
+    driver: local
+
+networks:
+  internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
