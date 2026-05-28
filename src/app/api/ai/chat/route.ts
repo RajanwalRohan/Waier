@@ -10,7 +10,7 @@ import {
 } from "@/lib/api-utils";
 import { aiChatSchema } from "@/lib/validations/ai-chat";
 import { streamCoachingResponse } from "@/lib/ai";
-import type { UserCoachingContext } from "@/lib/ai";
+import type { UserCoachingContext, PriorConversationSummary } from "@/lib/ai";
 
 /**
  * POST /api/ai/chat
@@ -24,6 +24,14 @@ import type { UserCoachingContext } from "@/lib/ai";
  *  - System prompt is server-controlled — never user-provided.
  *  - API key is server-side only.
  */
+
+/** Max prior conversations to summarize into the system prompt for memory. */
+const MEMORY_CONVERSATIONS = 5;
+/** Max messages per prior conversation to use when building its excerpt. */
+const MEMORY_MESSAGES_PER_CONVERSATION = 6;
+/** Char budget for any one prior-conversation excerpt. */
+const MEMORY_EXCERPT_CHARS = 400;
+
 export async function POST(request: Request) {
   try {
     const session = await requireAuthOrRespond();
@@ -58,6 +66,9 @@ export async function POST(request: Request) {
         fitnessGoal: true,
         activityLevel: true,
         dietaryPreferences: true,
+        medicalConditions: true,
+        foodAllergies: true,
+        medicalNotes: true,
       },
     });
 
@@ -70,29 +81,115 @@ export async function POST(request: Request) {
           fitnessGoal: profile.fitnessGoal,
           activityLevel: profile.activityLevel,
           dietaryPreferences: JSON.parse(profile.dietaryPreferences || "[]"),
+          medicalConditions: JSON.parse(profile.medicalConditions || "[]"),
+          foodAllergies: JSON.parse(profile.foodAllergies || "[]"),
+          medicalNotes: profile.medicalNotes,
         }
       : null;
 
-    // Persist the user message if a conversation exists
+    // Verify ownership of the active conversation, and capture its current
+    // message count so we can auto-title on the first exchange.
+    let activeConversationId: string | null = null;
+    let activeConvIsEmpty = false;
     if (data.conversationId) {
-      // Verify ownership of the conversation
       const conv = await db.aIConversation.findUnique({
         where: { id: data.conversationId },
-        select: { userId: true },
+        select: {
+          userId: true,
+          title: true,
+          _count: { select: { messages: true } },
+        },
       });
       if (conv && conv.userId === session.user.id) {
-        await db.aIMessage.create({
-          data: {
-            conversationId: data.conversationId,
-            role: "user",
-            content: data.message,
-          },
-        });
+        activeConversationId = data.conversationId;
+        activeConvIsEmpty = conv._count.messages === 0;
       }
     }
 
-    // Stream the response from the AI provider
-    return streamCoachingResponse(messages, userContext);
+    // Persist the user message if a conversation exists
+    if (activeConversationId) {
+      await db.aIMessage.create({
+        data: {
+          conversationId: activeConversationId,
+          role: "user",
+          content: data.message,
+        },
+      });
+    }
+
+    // Build cross-conversation memory. Pull recent OTHER conversations for
+    // this user and compress each into a short excerpt so Wynn has continuity
+    // across sessions without blowing the token budget.
+    const priorConversations: PriorConversationSummary[] = [];
+    const priorConvs = await db.aIConversation.findMany({
+      where: {
+        userId: session.user.id,
+        ...(activeConversationId ? { id: { not: activeConversationId } } : {}),
+      },
+      orderBy: { updatedAt: "desc" },
+      take: MEMORY_CONVERSATIONS,
+      select: {
+        title: true,
+        updatedAt: true,
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: MEMORY_MESSAGES_PER_CONVERSATION,
+          select: { role: true, content: true },
+        },
+      },
+    });
+    for (const c of priorConvs) {
+      if (!c.messages.length) continue;
+      // Messages are newest-first; flip to chronological for readability.
+      const ordered = [...c.messages].reverse();
+      const joined = ordered
+        .map((m) => `${m.role === "user" ? "User" : "Wynn"}: ${m.content}`)
+        .join(" | ");
+      const excerpt =
+        joined.length > MEMORY_EXCERPT_CHARS
+          ? joined.slice(0, MEMORY_EXCERPT_CHARS) + "…"
+          : joined;
+      priorConversations.push({ title: c.title, excerpt, updatedAt: c.updatedAt });
+    }
+
+    // Stream the response. When the stream finishes, persist the assistant
+    // message, bump the conversation's updatedAt, and auto-title if this was
+    // the first exchange.
+    return streamCoachingResponse(messages, {
+      userContext,
+      priorConversations,
+      onFinish: activeConversationId
+        ? async (finalText) => {
+            const trimmed = finalText.trim();
+            if (!trimmed) return;
+            await db.aIMessage.create({
+              data: {
+                conversationId: activeConversationId!,
+                role: "assistant",
+                content: trimmed,
+              },
+            });
+            // Auto-title from the user's first message when the conversation
+            // was previously empty and still carries the default title.
+            const shouldTitle = activeConvIsEmpty;
+            if (shouldTitle) {
+              const title = data.message.trim().replace(/\s+/g, " ").slice(0, 60);
+              await db.aIConversation.update({
+                where: { id: activeConversationId! },
+                data: {
+                  title: title || "New conversation",
+                  updatedAt: new Date(),
+                },
+              });
+            } else {
+              await db.aIConversation.update({
+                where: { id: activeConversationId! },
+                data: { updatedAt: new Date() },
+              });
+            }
+          }
+        : undefined,
+    });
   } catch (err) {
     return handleApiError(err);
   }

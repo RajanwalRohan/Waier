@@ -18,6 +18,14 @@ const serverEnvSchema = z.object({
   OPENAI_API_KEY: z.string().min(1).optional(),
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
 
+  // Social auth (Google, Apple)
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  APPLE_ID: z.string().optional(),
+  APPLE_TEAM_ID: z.string().optional(),
+  APPLE_KEY_ID: z.string().optional(),
+  APPLE_PRIVATE_KEY: z.string().optional(),
+
   // Wearable OAuth credentials (optional per provider)
   FITBIT_CLIENT_ID: z.string().optional(),
   FITBIT_CLIENT_SECRET: z.string().optional(),
@@ -28,6 +36,11 @@ const serverEnvSchema = z.object({
 
   // Encryption — used to encrypt OAuth tokens at rest
   ENCRYPTION_KEY: z.string().min(16, "ENCRYPTION_KEY must be ≥ 16 characters").optional(),
+
+  // Open Wearables — self-hosted wearable data pipeline
+  OPEN_WEARABLES_URL: z.string().url().optional(),
+  OPEN_WEARABLES_WEBHOOK_SECRET: z.string().min(32, "Webhook secret must be ≥ 32 characters").optional(),
+  OPEN_WEARABLES_ALLOWED_IPS: z.string().optional(), // comma-separated, e.g. "172.18.0.0/16,127.0.0.1"
 
   // Upload
   UPLOAD_MAX_SIZE_MB: z.coerce.number().positive().default(5),

@@ -58,14 +58,17 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts            Account[]
-  sessions            Session[]
-  profile             Profile?
-  workouts            Workout[]
-  meals               Meal[]
-  healthMetrics       HealthMetric[]
-  wearableConnections WearableConnection[]
-  aiConversations     AIConversation[]
+  accounts              Account[]
+  sessions              Session[]
+  profile               Profile?
+  workouts              Workout[]
+  meals                 Meal[]
+  healthMetrics         HealthMetric[]
+  wearableConnections   WearableConnection[]
+  aiConversations       AIConversation[]
+  workoutPresets        WorkoutPreset[]
+  mealPresets           MealPreset[]
+  dataDeletionRequests  DataDeletionRequest[]
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -74,13 +77,29 @@ model Profile {
   id                  String   @id @default(cuid())
   userId              String   @unique
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  age                 Int?
+  dateOfBirth         String?  // ISO date string (YYYY-MM-DD)
+  age                 Int?     // Computed from dateOfBirth on save
   heightCm            Float?
   weightKg            Float?
   sex                 String?  // male | female | other | prefer_not_to_say
   fitnessGoal         String?  // lose_weight | gain_muscle | maintain | improve_endurance | general_health
   activityLevel       String?  // sedentary | lightly_active | moderately_active | very_active | extremely_active
+  unitSystem          String   @default("imperial") // imperial | metric
+  defaultRestSec      Int      @default(180) // Default rest timer between sets (live workouts)
   dietaryPreferences  String   @default("[]") // JSON array of strings
+  medicalConditions   String   @default("[]") // JSON array of condition strings
+  foodAllergies       String   @default("[]") // JSON array of specific food allergen strings
+  medicalNotes        String?
+
+  // ─── Goal Setting ──────────────────────────────────────
+  fitnessGoals        String   @default("[]") // JSON array: gain_muscle, lose_weight, clean_bulk, clean_cut, mobility, improve_endurance, general_health, build_strength
+  dietType            String?  // omnivore | vegetarian | vegan | pescatarian | keto | paleo | mediterranean | whole30
+  exercisePreferences String   @default("[]") // JSON array: running, walking, jogging, weight_lifting, calisthenics, pilates, yoga, swimming, cycling, hiit, boxing, martial_arts, dancing, rock_climbing, rowing
+  exerciseDaysPerWeek Int?     // how many days per week they currently exercise (0-7)
+  dailyStepsGoal      Int?     // target steps per day
+  sleepGoalHours      Float?   // target sleep hours per night
+  goalWeightKg        Float?   // target weight in kg
+  calorieGoal         Int?     // daily calorie target
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -117,6 +136,38 @@ model Exercise {
   @@index([workoutId])
 }
 
+// ─── Workout Presets (reusable split templates) ──────────
+
+model WorkoutPreset {
+  id            String            @id @default(cuid())
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String            // e.g. "Chest Day", "Leg Day"
+  // JSON array of integers 0-6 (Sunday=0) — days of week this preset recurs.
+  // Empty array means no recurring schedule.
+  recurringDays String            @default("[]")
+  exercises     PresetExercise[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([userId])
+}
+
+model PresetExercise {
+  id          String        @id @default(cuid())
+  presetId    String
+  preset      WorkoutPreset @relation(fields: [presetId], references: [id], onDelete: Cascade)
+  name        String
+  sets        Int?
+  reps        Int?
+  weightKg    Float?
+  durationSec Int?
+  notes       String?
+  order       Int           @default(0)
+
+  @@index([presetId])
+}
+
 // ─── Nutrition / Meals ────────────────────────────────────
 
 model Meal {
@@ -139,6 +190,26 @@ model Meal {
   @@index([userId, date])
 }
 
+// ─── Meal Presets (one-click meal logging) ───────────────
+
+model MealPreset {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String   // e.g. "Oatmeal Bowl", "Post-Workout Shake"
+  description String?
+  mealType    String?  // breakfast | lunch | dinner | snack
+  calories    Float?
+  proteinG    Float?
+  carbsG      Float?
+  fatG        Float?
+  fiberG      Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
 // ─── Health Metrics (from wearables or manual) ────────────
 
 model HealthMetric {
@@ -158,21 +229,25 @@ model HealthMetric {
 // ─── Wearable Connections ─────────────────────────────────
 
 model WearableConnection {
-  id           String    @id @default(cuid())
-  userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider     String    // fitbit | apple_health | garmin | google_fit
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider        String    // fitbit | apple_health | garmin | google_fit | open_wearables
   // Tokens are stored encrypted at the application layer.
-  accessToken  String
-  refreshToken String?
-  expiresAt    DateTime?
-  scopes       String    @default("[]") // JSON array of strings
-  isActive     Boolean   @default(true)
-  lastSyncAt   DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  accessToken     String
+  refreshToken    String?
+  expiresAt       DateTime?
+  scopes          String    @default("[]") // JSON array of strings
+  isActive        Boolean   @default(true)
+  lastSyncAt      DateTime?
+  externalUserId  String?   // Open Wearables user ID mapping
+  providerDevice  String?   // e.g. "apple_watch_series_9", "huawei_band_6"
+  tokenRotatedAt  DateTime? // Track when OAuth tokens were last refreshed
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@unique([userId, provider])
+  @@unique([externalUserId])
   @@index([userId])
 }
 
@@ -230,4 +305,33 @@ model AIMessage {
   createdAt      DateTime       @default(now())
 
   @@index([conversationId])
+}
+
+// ─── Audit Logging (security & compliance) ───────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // wearable_sync | data_delete | connection_revoked | connection_created | webhook_rejected
+  detail    String?  // JSON metadata (metric count, source, etc.) — NEVER contains PII or health values
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+}
+
+// ─── Data Deletion Requests (GDPR-style) ─────────────────
+
+model DataDeletionRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scope       String    // wearable_data | all_health_data | full_account
+  status      String    @default("pending") // pending | processing | completed
+  requestedAt DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([userId])
+  @@index([status])
 }

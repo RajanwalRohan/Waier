@@ -43,12 +43,46 @@ export async function POST(request: Request) {
 
     const passwordHash = await bcrypt.hash(data.password, 12);
 
+    // Compute age from date of birth
+    const dob = new Date(data.dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
+
+    if (age < 13) {
+      return errorResponse("You must be at least 13 years old to create an account.", 400);
+    }
+
     const user = await db.user.create({
       data: {
         email: data.email,
         passwordHash,
         name: data.name,
-        profile: { create: {} },
+        profile: {
+          create: {
+            dateOfBirth: data.dateOfBirth,
+            age,
+            sex: data.sex,
+            heightCm: data.heightCm,
+            weightKg: data.weightKg,
+            activityLevel: data.activityLevel,
+            fitnessGoal: data.fitnessGoal || null,
+            unitSystem: data.unitSystem || "imperial",
+            medicalConditions: JSON.stringify(data.medicalConditions),
+            foodAllergies: data.foodAllergies ? JSON.stringify(data.foodAllergies) : "[]",
+            medicalNotes: data.medicalNotes || null,
+            // Goal setting (Step 3)
+            fitnessGoals: data.fitnessGoals ? JSON.stringify(data.fitnessGoals) : "[]",
+            dietType: data.dietType || null,
+            exercisePreferences: data.exercisePreferences ? JSON.stringify(data.exercisePreferences) : "[]",
+            exerciseDaysPerWeek: data.exerciseDaysPerWeek ?? null,
+            dailyStepsGoal: data.dailyStepsGoal ?? null,
+            sleepGoalHours: data.sleepGoalHours ?? null,
+            goalWeightKg: data.goalWeightKg ?? null,
+            calorieGoal: data.calorieGoal ?? null,
+          },
+        },
       },
       select: { id: true, email: true, name: true, createdAt: true },
     });

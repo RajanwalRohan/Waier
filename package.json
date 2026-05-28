@@ -1,5 +1,5 @@
 {
-  "name": "ai-health-coach",
+  "name": "waier",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,12 +11,14 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "prisma generate"
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.40",
+    "@auth/prisma-adapter": "^2.11.2",
     "@prisma/client": "^5.15.0",
     "ai": "^3.2.0",
     "bcryptjs": "^2.4.3",
@@ -38,6 +40,7 @@
     "postcss": "^8.4.0",
     "prisma": "^5.15.0",
     "tailwindcss": "^3.4.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.5.0",
     "vitest": "^4.1.1"
   }

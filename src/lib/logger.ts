@@ -31,14 +31,18 @@ const isDev = process.env.NODE_ENV !== "production";
 /** Fields that must never appear in logs. */
 const REDACTED_FIELDS = new Set([
   "password",
-  "passwordHash",
-  "accessToken",
-  "refreshToken",
-  "apiKey",
+  "passwordhash",
+  "accesstoken",
+  "refreshtoken",
+  "apikey",
   "secret",
   "authorization",
   "cookie",
   "token",
+  "email",
+  "reseturl",
+  "name",
+  "ip",
 ]);
 
 /** Recursively redact sensitive fields from an object. */

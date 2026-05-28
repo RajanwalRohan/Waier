@@ -1,6 +1,17 @@
 import { z } from "zod";
 
-const providerEnum = z.enum(["fitbit", "apple_health", "garmin", "google_fit"]);
+const providerEnum = z.enum([
+  "fitbit",
+  "apple_health",
+  "garmin",
+  "google_fit",
+  "samsung_health",
+  "whoop",
+  "oura",
+  "polar",
+  "suunto",
+  "open_wearables",
+]);
 
 /**
  * Wearable connection request schema.
@@ -36,5 +47,12 @@ export const syncWearableSchema = z
   })
   .strict();
 
+export const deleteWearableDataSchema = z
+  .object({
+    scope: z.enum(["wearable_data", "all_health_data"]),
+  })
+  .strict();
+
 export type ConnectWearableInput = z.infer<typeof connectWearableSchema>;
 export type WearableCallbackInput = z.infer<typeof wearableCallbackSchema>;
+export type DeleteWearableDataInput = z.infer<typeof deleteWearableDataSchema>;
