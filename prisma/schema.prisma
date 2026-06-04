@@ -76,6 +76,7 @@ model User {
   moodCheckIns          MoodCheckIn[]
   healthAlerts          HealthAlert[]
   ecgReadings           EcgReading[]
+  goals                 Goal[]
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -469,6 +470,31 @@ model HealthAlert {
   @@unique([userId, kind, detectedAt])
   @@index([userId, status])
   @@index([userId, detectedAt])
+}
+
+// ─── Goals (quantitative, trackable targets) ─────────────
+// Turns goal categories from onboarding into concrete targets with progress
+// and a finish line. Progress is computed from existing data (metrics,
+// workouts, streaks), not stored, so it is always live.
+
+model Goal {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String    // weight | strength_pr | distance | health_metric | habit_streak | custom
+  title       String
+  metricType  String?   // for health_metric / weight goals: which HealthMetric type to read
+  streakType  String?   // for habit_streak goals: bubble | meal | workout
+  targetValue Float
+  targetUnit  String?
+  startValue  Float?    // snapshot at creation; null means "use first observed"
+  deadline    DateTime?
+  status      String    @default("active") // active | paused | completed | abandoned
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, status])
 }
 
 // ─── ECG Readings (scaffold; device pass-through, Phase 3) ─
