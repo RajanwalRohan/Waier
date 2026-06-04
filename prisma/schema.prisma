@@ -80,6 +80,7 @@ model User {
   plans                 Plan[]
   hydrationLogs         HydrationLog[]
   modifiers             Modifier[]
+  cycleEntries          CycleEntry[]
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -498,6 +499,24 @@ model Goal {
   updatedAt   DateTime  @updatedAt
 
   @@index([userId, status])
+}
+
+// ─── Cycle Tracking (strict-tier private) ────────────────
+// Period, symptom, and phase logging. Strict tier: never used in percentiles,
+// leagues, or any shared surface, and excluded by default from Wrapped.
+
+model CycleEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  kind      String   // period_start | period_end | symptom
+  flow      String?  // light | medium | heavy (period days)
+  symptoms  String?  // JSON array of symptom strings
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, date])
 }
 
 // ─── Hydration (tracked, NOT scored) ─────────────────────
