@@ -77,6 +77,7 @@ model User {
   healthAlerts          HealthAlert[]
   ecgReadings           EcgReading[]
   goals                 Goal[]
+  plans                 Plan[]
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -495,6 +496,43 @@ model Goal {
   updatedAt   DateTime  @updatedAt
 
   @@index([userId, status])
+}
+
+// ─── Coaching Plans ───────────────────────────────────────
+// A Plan is a day-by-day schedule (training or nutrition) optionally tied to a
+// Goal. Items are followed and checked off; v1 generates plans from a template
+// calibrated to the user's profile, with AI authoring as a later enhancement.
+
+model Plan {
+  id               String     @id @default(cuid())
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goalId           String?    // soft link to a Goal (no FK to keep deletes simple)
+  name             String
+  kind             String     // training | nutrition
+  startDate        DateTime
+  endDate          DateTime
+  status           String     @default("active") // active | paused | completed | archived
+  adaptationPolicy String?    // informational in v1
+  items            PlanItem[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([userId, status])
+}
+
+model PlanItem {
+  id        String   @id @default(cuid())
+  planId    String
+  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  date      DateTime
+  kind      String   // workout | meal | habit | rest
+  title     String
+  payload   String?  // JSON details (focus, macros, etc.)
+  completed Boolean  @default(false)
+  order     Int      @default(0)
+
+  @@index([planId, date])
 }
 
 // ─── ECG Readings (scaffold; device pass-through, Phase 3) ─
