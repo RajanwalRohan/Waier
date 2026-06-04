@@ -69,6 +69,10 @@ model User {
   workoutPresets        WorkoutPreset[]
   mealPresets           MealPreset[]
   dataDeletionRequests  DataDeletionRequest[]
+  dailyScores           DailyScore[]
+  streaks               Streak[]
+  orbDays               OrbDay[]
+  metricBaselines       MetricBaseline[]
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -100,6 +104,10 @@ model Profile {
   sleepGoalHours      Float?   // target sleep hours per night
   goalWeightKg        Float?   // target weight in kg
   calorieGoal         Int?     // daily calorie target
+  proteinGoalG        Int?     // daily protein target (grams)
+  carbsGoalG          Int?     // daily carbohydrate target (grams)
+  fatGoalG            Int?     // daily fat target (grams)
+  hydrationGoalMl     Int?     // daily hydration target (mL) — tracked, not scored
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -334,4 +342,87 @@ model DataDeletionRequest {
 
   @@index([userId])
   @@index([status])
+}
+
+// ─── Flow: Signature Score ────────────────────────────────
+// One materialized score row per user per day. rawFlow is the day's raw
+// computation (0-1000); flow is the EMA-smoothed displayed value. Pillars are
+// stored for the breakdown UI and are nullable when a pillar has no data.
+
+model DailyScore {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime
+  rawFlow     Float
+  flow        Float
+  heart       Float?
+  motion      Float?
+  recovery    Float?
+  fuel        Float?
+  consistency Float?
+  tier        String
+  division    Int?     // 3 (III) .. 1 (I); null for Maelstrom
+  calibrating Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+// ─── Streaks (the Bubble + secondary streaks) ─────────────
+
+model Streak {
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type               String    // bubble | meal | workout
+  count              Int       @default(0)
+  lastQualifyingDate DateTime?
+  shields            Int       @default(0) // Streak Shields held (max 2)
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([userId, type])
+  @@index([userId])
+}
+
+// ─── Orb (daily engagement) ───────────────────────────────
+// Per-day fill state. Each source contributes a percentage; the day is
+// complete (filledAt set) when the combined fill reaches 100%.
+
+model OrbDay {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date       DateTime
+  movePct    Float     @default(0)
+  fuelPct    Float     @default(0)
+  recoverPct Float     @default(0)
+  focusPct   Float     @default(0)
+  filledAt   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+// ─── Metric Baselines (continuously-updated personal averages) ──
+// A rolling mean/stddev per metric type per user, recomputed from recent
+// history. Powers today-vs-typical deltas on metric detail pages.
+
+model MetricBaseline {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  metricType String
+  mean       Float
+  stddev     Float    @default(0)
+  sampleSize Int      @default(0)
+  periodDays Int      @default(30)
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, metricType])
+  @@index([userId])
 }
