@@ -31,6 +31,7 @@ const METRIC_META: Record<string, { label: string; unit: string }> = {
   floors_climbed: { label: "Floors Climbed", unit: "floors" },
   stress_level: { label: "Stress Level", unit: "score" },
   body_battery: { label: "Body Battery", unit: "score" },
+  reserves: { label: "Reserves", unit: "score" },
 };
 
 /**

@@ -28,6 +28,7 @@ import {
   type Pillars,
 } from "./scoring";
 import { getRank } from "./ranks";
+import { computeReserves, reservesLabel } from "../reserves";
 import {
   PILLAR_WEIGHTS,
   HEART_SUBWEIGHTS,
@@ -91,6 +92,7 @@ export interface FlowResult {
   pillars: { heart: number | null; motion: number | null; recovery: number | null; fuel: number | null; consistency: number | null };
   streaks: { bubble: number; meal: number; workout: number };
   orb: { movePct: number; fuelPct: number; recoverPct: number; focusPct: number; filled: boolean };
+  reserves: { score: number; label: string };
 }
 
 /** Absolute clinical sub-score (0-100) for a metric value, or null if absent. */
@@ -241,6 +243,27 @@ export async function materializeFlow(userId: string): Promise<FlowResult> {
     update: { movePct, fuelPct, recoverPct, focusPct, filledAt: orbFilled ? new Date() : null },
   });
 
+  // ── Reserves: recovery readiness ──
+  const since2Key = dayKey(daysAgo(2));
+  const recentSessions = Array.from(workoutDayKeys).filter((k) => k >= since2Key).length;
+  const reserves = computeReserves({
+    sleepHours: sleepLast,
+    sleepGoalHours: sleepGoal,
+    hrvScore: subScore("hrv", hrv, goals),
+    restingHrScore: subScore("resting_heart_rate", restingHr, goals),
+    recentSessions,
+    hasTrainingData: workouts.length > 0,
+  });
+  const reservesScore = Math.round(reserves.score);
+  // Persist as a HealthMetric so Reserves flows through the dashboard grid and
+  // gets a metric detail page for free.
+  await db.healthMetric.deleteMany({ where: { userId, type: "reserves", date: { gte: today } } });
+  if (reservesScore > 0) {
+    await db.healthMetric.create({
+      data: { userId, type: "reserves", value: reservesScore, unit: "score", source: "waier", date: today },
+    });
+  }
+
   // ── Consistency pillar ──
   // Orb completion proxy: fraction of last 30 days with any logged activity.
   const activeDays = new Set<string>();
@@ -324,6 +347,7 @@ export async function materializeFlow(userId: string): Promise<FlowResult> {
     },
     streaks: { bubble: 0, meal: mealStreak, workout: workoutStreak },
     orb: { movePct: Math.round(movePct), fuelPct: Math.round(fuelPct), recoverPct: Math.round(recoverPct), focusPct, filled: orbFilled },
+    reserves: { score: reservesScore, label: reservesLabel(reserves.score) },
   };
 }
 
