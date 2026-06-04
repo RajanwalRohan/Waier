@@ -171,6 +171,18 @@ export default async function DashboardPage() {
         <svg className="h-5 w-5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
       </a>
 
+      {/* Medical entry */}
+      <a href="/medical" className="card mb-6 flex items-center justify-between transition-all hover:shadow-glass-lg active:scale-[0.99]">
+        <div className="flex items-center gap-3">
+          <span className="text-rose-500"><HeartIcon /></span>
+          <div>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">Medical</p>
+            <p className="text-xs text-slate-400">Medications, records &amp; lab results (private)</p>
+          </div>
+        </div>
+        <svg className="h-5 w-5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+      </a>
+
       {/* Cycle entry */}
       <a href="/cycle" className="card mb-6 flex items-center justify-between transition-all hover:shadow-glass-lg active:scale-[0.99]">
         <div className="flex items-center gap-3">

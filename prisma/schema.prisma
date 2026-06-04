@@ -81,6 +81,9 @@ model User {
   hydrationLogs         HydrationLog[]
   modifiers             Modifier[]
   cycleEntries          CycleEntry[]
+  medications           Medication[]
+  medicalRecords        MedicalRecord[]
+  labResults            LabResult[]
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -499,6 +502,62 @@ model Goal {
   updatedAt   DateTime  @updatedAt
 
   @@index([userId, status])
+}
+
+// ─── Medical Profile (strict-tier private) ───────────────
+// Medications get a dedicated model (structured, informs Wynn safety re:
+// dosing). Procedures, vaccines, and doctor visits share a flexible
+// MedicalRecord. All strict tier: encrypted posture, never used for training,
+// never shared.
+
+model Medication {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  dosage          String?
+  frequency       String?
+  startDate       DateTime?
+  endDate         DateTime?
+  prescriber      String?
+  reminderEnabled Boolean   @default(false)
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model MedicalRecord {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String   // procedure | vaccine | doctor_visit
+  name         String
+  date         DateTime?
+  providerName String?
+  detail       String?  // lot number, reason, notes
+  createdAt    DateTime @default(now())
+
+  @@index([userId, type])
+}
+
+// ─── Lab Results (strict-tier private) ───────────────────
+
+model LabResult {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  testName        String    // e.g. "LDL", "HbA1c"
+  value           Float
+  unit            String?
+  refRangeLow     Float?
+  refRangeHigh    Float?
+  panel           String?   // e.g. "Lipid Panel"
+  collectedAt     DateTime
+  sourceUploadRef String?   // encrypted reference if imported from a document
+  createdAt       DateTime  @default(now())
+
+  @@index([userId, testName, collectedAt])
 }
 
 // ─── Cycle Tracking (strict-tier private) ────────────────
