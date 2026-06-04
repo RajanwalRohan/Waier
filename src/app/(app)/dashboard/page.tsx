@@ -2,6 +2,7 @@ import { getServerSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { kgToLbs } from "@/lib/units";
 import type { UnitSystem } from "@/lib/units";
+import { FlowCard } from "@/components/FlowCard";
 
 /** Icon + color config per metric type. Falls back to a generic style. */
 const METRIC_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
@@ -113,6 +114,9 @@ export default async function DashboardPage() {
         </h1>
       </div>
 
+      {/* Flow: signature score, Orb, and pillar breakdown */}
+      <FlowCard />
+
       <div className="card mb-6 bg-gradient-to-br from-accent-50/80 to-violet-50/60 dark:from-accent-900/20 dark:to-violet-900/20 border-accent-100/40 dark:border-accent-500/20">
         <div className="flex items-start gap-3">
           <svg className="h-6 w-6 shrink-0 mt-0.5 text-accent-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -154,15 +158,16 @@ export default async function DashboardPage() {
           const displayUnit = unit === "percent" ? "percentage" : unit;
           const colorClass = config.color.split(" ").find((c) => c.startsWith("text-")) ?? "text-slate-500";
           return (
-            <MetricCard
-              key={type}
-              label={config.label}
-              value={displayValue}
-              unit={displayUnit}
-              icon={<MetricIcon name={config.icon} />}
-              iconColor={colorClass}
-              sparkValues={last7ByType.get(type) ?? []}
-            />
+            <a key={type} href={`/metrics/${type}`} className="contents">
+              <MetricCard
+                label={config.label}
+                value={displayValue}
+                unit={displayUnit}
+                icon={<MetricIcon name={config.icon} />}
+                iconColor={colorClass}
+                sparkValues={last7ByType.get(type) ?? []}
+              />
+            </a>
           );
         })}
         {/* If no wearable metrics, show empty-state cards */}
