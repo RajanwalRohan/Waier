@@ -73,6 +73,9 @@ model User {
   streaks               Streak[]
   orbDays               OrbDay[]
   metricBaselines       MetricBaseline[]
+  moodCheckIns          MoodCheckIn[]
+  healthAlerts          HealthAlert[]
+  ecgReadings           EcgReading[]
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -425,4 +428,61 @@ model MetricBaseline {
 
   @@unique([userId, metricType])
   @@index([userId])
+}
+
+// ─── Mental Wellbeing ─────────────────────────────────────
+// Optional daily self-report of mood, energy, and focus (each 1-5), to sit
+// alongside wearable-derived stress. One row per user per day.
+
+model MoodCheckIn {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  mood      Int      // 1 (low) .. 5 (great)
+  energy    Int      // 1 .. 5
+  focus     Int      // 1 .. 5
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+// ─── Periodic Health Checks ───────────────────────────────
+// Detected findings from passive metrics. HR/SpO2/respiration anomalies are
+// computed by Waier; irregular_rhythm and ecg findings are pass-through from
+// device-cleared sources (never self-diagnosed). See PRD Regulatory Posture.
+
+model HealthAlert {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind        String    // hr_high | hr_low | spo2_dip | resp_anomaly | irregular_rhythm | ecg
+  severity    String    @default("info") // info | attention | urgent
+  detectedAt  DateTime
+  contextJson String?   // JSON metadata (value, threshold, source) — no diagnosis
+  status      String    @default("new") // new | acknowledged | dismissed
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, kind, detectedAt])
+  @@index([userId, status])
+  @@index([userId, detectedAt])
+}
+
+// ─── ECG Readings (scaffold; device pass-through, Phase 3) ─
+
+model EcgReading {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  capturedAt     DateTime
+  heartRate      Int?
+  classification String?  // device-provided, e.g. "sinus_rhythm" | "afib" | "inconclusive"
+  deviceProvider String?
+  waveformRef    String?  // encrypted reference; bytes never in the primary DB
+  createdAt      DateTime @default(now())
+
+  @@index([userId, capturedAt])
 }

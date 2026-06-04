@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { kgToLbs } from "@/lib/units";
 import type { UnitSystem } from "@/lib/units";
 import { FlowCard } from "@/components/FlowCard";
+import { HealthChecksCard } from "@/components/HealthChecksCard";
 
 /** Icon + color config per metric type. Falls back to a generic style. */
 const METRIC_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
@@ -22,6 +23,7 @@ const METRIC_CONFIG: Record<string, { label: string; icon: string; color: string
   body_fat_percentage:{ label: "Body Fat",             icon: "scale",      color: "bg-yellow-50 dark:bg-yellow-500/20 text-yellow-500" },
   stress_level:       { label: "Stress",               icon: "activity",   color: "bg-red-50 dark:bg-red-500/20 text-red-500" },
   body_battery:       { label: "Body Battery",         icon: "battery",    color: "bg-lime-50 dark:bg-lime-500/20 text-lime-500" },
+  reserves:           { label: "Reserves",             icon: "battery",    color: "bg-emerald-50 dark:bg-emerald-500/20 text-emerald-500" },
   distance:           { label: "Distance",             icon: "trend-up",   color: "bg-sky-50 dark:bg-sky-500/20 text-sky-500" },
   floors_climbed:     { label: "Floors",               icon: "trend-up",   color: "bg-fuchsia-50 dark:bg-fuchsia-500/20 text-fuchsia-500" },
 };
@@ -30,7 +32,7 @@ const DEFAULT_CONFIG = { label: "", icon: "activity", color: "bg-slate-100 dark:
 
 /** Priority order — metrics listed first are shown first on the dashboard. */
 const PRIORITY_ORDER = [
-  "steps", "heart_rate", "sleep_hours", "hrv", "blood_oxygen",
+  "reserves", "steps", "heart_rate", "sleep_hours", "hrv", "blood_oxygen",
   "calories_burned", "resting_heart_rate", "vo2_max", "weight",
   "skin_temperature", "blood_glucose", "respiratory_rate",
   "stress_level", "body_battery", "active_calories", "distance",
@@ -116,6 +118,21 @@ export default async function DashboardPage() {
 
       {/* Flow: signature score, Orb, and pillar breakdown */}
       <FlowCard />
+
+      {/* Wellbeing entry */}
+      <a href="/wellbeing" className="card mb-6 flex items-center justify-between transition-all hover:shadow-glass-lg active:scale-[0.99]">
+        <div className="flex items-center gap-3">
+          <span className="text-accent-500"><ActivityIcon /></span>
+          <div>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">Wellbeing</p>
+            <p className="text-xs text-slate-400">Log today&apos;s mood, energy &amp; focus</p>
+          </div>
+        </div>
+        <svg className="h-5 w-5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+      </a>
+
+      {/* Periodic Health Checks (shows only when there are findings) */}
+      <HealthChecksCard hideWhenEmpty />
 
       <div className="card mb-6 bg-gradient-to-br from-accent-50/80 to-violet-50/60 dark:from-accent-900/20 dark:to-violet-900/20 border-accent-100/40 dark:border-accent-500/20">
         <div className="flex items-start gap-3">

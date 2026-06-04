@@ -205,6 +205,14 @@ const METRIC_GRADERS: Record<string, (value: number, goals: UserGoals) => Grade>
     return "poor";
   },
 
+  // ── Reserves (Waier recovery-readiness score, higher = better) ──
+  reserves: (v) => {
+    if (v >= 75) return "excellent";
+    if (v >= 55) return "good";
+    if (v >= 35) return "ok";
+    return "poor";
+  },
+
   // ── Skin Temperature (°C) — normal body temp range ──
   skin_temperature: (v) => {
     if (v >= 36.1 && v <= 37.2) return "excellent";
