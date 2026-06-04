@@ -78,6 +78,8 @@ model User {
   ecgReadings           EcgReading[]
   goals                 Goal[]
   plans                 Plan[]
+  hydrationLogs         HydrationLog[]
+  modifiers             Modifier[]
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -496,6 +498,39 @@ model Goal {
   updatedAt   DateTime  @updatedAt
 
   @@index([userId, status])
+}
+
+// ─── Hydration (tracked, NOT scored) ─────────────────────
+// Water intake against a daily goal. Deliberately excluded from Flow and from
+// the Orb's fill sources because self-reported intake is trivially gameable.
+
+model HydrationLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  amountMl  Int
+  createdAt DateTime @default(now())
+
+  @@index([userId, date])
+}
+
+// ─── Modifiers (caffeine, alcohol, supplements, sleep aids) ──
+// Logged for context (Wynn correlations), never scored, never on competitive
+// surfaces.
+
+model Modifier {
+  id      String   @id @default(cuid())
+  userId  String
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind    String   // caffeine | alcohol | supplement | sleep_aid
+  name    String?
+  amount  Float?
+  unit    String?  // mg | drinks | g | mcg | ...
+  takenAt DateTime
+  note    String?
+
+  @@index([userId, takenAt])
 }
 
 // ─── Coaching Plans ───────────────────────────────────────

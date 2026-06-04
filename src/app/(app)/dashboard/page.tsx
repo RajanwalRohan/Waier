@@ -4,6 +4,7 @@ import { kgToLbs } from "@/lib/units";
 import type { UnitSystem } from "@/lib/units";
 import { FlowCard } from "@/components/FlowCard";
 import { HealthChecksCard } from "@/components/HealthChecksCard";
+import { HydrationCard } from "@/components/HydrationCard";
 
 /** Icon + color config per metric type. Falls back to a generic style. */
 const METRIC_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
@@ -118,6 +119,21 @@ export default async function DashboardPage() {
 
       {/* Flow: signature score, Orb, and pillar breakdown */}
       <FlowCard />
+
+      {/* Hydration (tracked, not scored — distinct blue) */}
+      <HydrationCard />
+
+      {/* Intake entry (caffeine, alcohol, supplements) */}
+      <a href="/intake" className="card mb-6 flex items-center justify-between transition-all hover:shadow-glass-lg active:scale-[0.99]">
+        <div className="flex items-center gap-3">
+          <span className="text-sky-500"><DropletIcon /></span>
+          <div>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">Intake</p>
+            <p className="text-xs text-slate-400">Log caffeine, alcohol &amp; supplements</p>
+          </div>
+        </div>
+        <svg className="h-5 w-5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+      </a>
 
       {/* Wellbeing entry */}
       <a href="/wellbeing" className="card mb-6 flex items-center justify-between transition-all hover:shadow-glass-lg active:scale-[0.99]">
