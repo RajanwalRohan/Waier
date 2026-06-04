@@ -113,18 +113,19 @@ export function Orb({ fillPct, flow, rankLabel, bubbleDays, calibrating }: OrbPr
         )}
       </svg>
 
-      {/* Center readout */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+      {/* Center readout. White text with a dark halo so it stays legible over
+          the luminous fill (and the shell at low fill) in both light and dark. */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center" style={{ textShadow: "0 1px 5px rgba(15, 23, 42, 0.5)" }}>
         {calibrating ? (
           <>
-            <span className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{flow}</span>
-            <span className="mt-1 text-[11px] font-medium uppercase tracking-wide text-accent-500">Calibrating</span>
+            <span className="text-3xl font-bold tracking-tight text-white">{flow}</span>
+            <span className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-white/90">Calibrating</span>
           </>
         ) : (
           <>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Flow</span>
-            <span className="text-5xl font-bold leading-none tracking-tight text-slate-900 dark:text-white">{flow}</span>
-            <span className="mt-1.5 text-xs font-semibold text-accent-500">{rankLabel}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-white/75">Flow</span>
+            <span className="text-5xl font-bold leading-none tracking-tight text-white">{flow}</span>
+            <span className="mt-1.5 text-xs font-bold uppercase tracking-wide text-white/95">{rankLabel}</span>
           </>
         )}
       </div>
