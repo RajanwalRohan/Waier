@@ -89,6 +89,7 @@ model User {
   championshipMemberships ChampionshipMember[]
   progressPhotos          ProgressPhoto[]
   personalFoods           PersonalFood[]
+  importJobs              ImportJob[]
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -509,6 +510,23 @@ model Goal {
   updatedAt   DateTime  @updatedAt
 
   @@index([userId, status])
+}
+
+// ─── Import Jobs (migration from other apps) ─────────────
+// A record of each CSV / export import, with a summary of what landed.
+
+model ImportJob {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source    String   @default("csv") // csv | apple_health | mfp | strava | ...
+  status    String   @default("completed")
+  imported  Int      @default(0)
+  skipped   Int      @default(0)
+  errors    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // ─── Personal Food Library ───────────────────────────────

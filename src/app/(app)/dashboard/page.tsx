@@ -219,6 +219,18 @@ export default async function DashboardPage() {
         <svg className="h-5 w-5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
       </a>
 
+      {/* Import data entry */}
+      <a href="/import" className="card mb-6 flex items-center justify-between transition-all hover:shadow-glass-lg active:scale-[0.99]">
+        <div className="flex items-center gap-3">
+          <span className="text-accent-500"><ImportIcon /></span>
+          <div>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">Import data</p>
+            <p className="text-xs text-slate-400">Bring your history from another app</p>
+          </div>
+        </div>
+        <svg className="h-5 w-5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+      </a>
+
       {/* Wrapped entry */}
       <a href="/wrapped" className="card mb-6 flex items-center justify-between transition-all hover:shadow-glass-lg active:scale-[0.99]">
         <div className="flex items-center gap-3">
@@ -543,4 +555,7 @@ function CameraIcon() {
 }
 function ScanIcon() {
   return (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 8v8M11 8v8M15 8v8" /></svg>);
+}
+function ImportIcon() {
+  return (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>);
 }
