@@ -39,6 +39,28 @@
   [role="button"]:not(.no-press-feedback):active {
     opacity: 0.65;
   }
+
+  /* Visible keyboard focus on every interactive element (WCAG 2.4.7).
+     :focus-visible only shows for keyboard / assistive-tech users. */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+
+  /* Skip-to-content link: off-screen until focused. */
+  .skip-link {
+    @apply sr-only;
+  }
+  .skip-link:focus {
+    @apply not-sr-only fixed left-4 top-4 z-[100] rounded-xl bg-accent-500 px-4 py-2 text-sm font-semibold text-white shadow-lg;
+  }
 }
 
 @layer components {

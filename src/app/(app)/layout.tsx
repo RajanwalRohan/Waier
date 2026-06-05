@@ -17,8 +17,9 @@ export default async function AppLayout({
 
   return (
     <Providers>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <div className="flex h-full flex-col">
-        <main className="flex-1 overflow-y-auto">
+        <main id="main-content" tabIndex={-1} aria-label="Main content" className="flex-1 overflow-y-auto focus:outline-none">
           <PageTransition>{children}</PageTransition>
         </main>
         <AppNav />
