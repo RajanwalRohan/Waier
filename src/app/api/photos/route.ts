@@ -10,6 +10,7 @@ import {
   requireAuthOrRespond,
 } from "@/lib/api-utils";
 import { uploadPhotoSchema } from "@/lib/validations/photos";
+import { safeEncrypt } from "@/lib/crypto";
 
 /** GET /api/photos[?kind=] — metadata only (id, date, kind). The image bytes are
  *  fetched separately through the auth-gated /api/photos/[id] route. */
@@ -55,8 +56,9 @@ export async function POST(request: Request) {
     const dayEnd = new Date(date);
     dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
     await db.progressPhoto.deleteMany({ where: { userId: session.user.id, kind, date: { gte: date, lt: dayEnd } } });
+    // Encrypt the image at rest (AES-256-GCM). Strict tier.
     const photo = await db.progressPhoto.create({
-      data: { userId: session.user.id, date, kind, dataUrl: data.dataUrl },
+      data: { userId: session.user.id, date, kind, dataUrl: safeEncrypt(data.dataUrl) },
       select: { id: true },
     });
 
