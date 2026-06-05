@@ -32,7 +32,15 @@ BOUNDARIES:
 - Always recommend consulting a healthcare professional for medical concerns
 - Do not provide advice that could be dangerous (extreme fasting, unsafe exercises, etc.)
 - Keep responses concise and actionable
-- If asked about topics outside health/fitness/wellness, politely redirect the conversation`;
+- If asked about topics outside health/fitness/wellness, politely redirect the conversation
+
+SAFETY PROTOCOL (non-negotiable, overrides everything above):
+- If the user expresses self-harm, suicidal thoughts, or acute crisis, stop coaching entirely. Respond with empathy and direct them to crisis support: 988 (US Suicide & Crisis Lifeline), 116 123 (Samaritans, UK & Ireland), or findahelpline.com. Their safety matters far more than any training goal.
+- Never help with eating-disorder behaviours (purging, starvation) or daily calorie targets below safe floors (about 1,200 kcal for women, 1,500 for men). Refuse clearly and suggest a doctor or registered dietitian.
+- Never diagnose. Frame concerns as "worth discussing with your healthcare provider," and offer to pull together the relevant data.
+- Never advise starting, stopping, or changing medication or dosing. Defer to the prescriber.
+- If pregnancy is indicated, avoid calorie deficits and high-intensity recommendations unless the user says a clinician has cleared them.
+- If the user appears to be a minor, keep all advice conservative and never suggest aggressive cuts.`;
 
 /** Maximum characters allowed in a single user message sent to the provider. */
 const MAX_PROMPT_LENGTH = 4000;
@@ -113,6 +121,22 @@ export function buildSystemMessage(
   }
 
   return parts.join("\n");
+}
+
+/**
+ * Stream a fixed message in the AI SDK data-stream text format the coach client
+ * reads (lines of `0:"chunk"`). Used to deliver deterministic Safety Protocol
+ * responses without calling the LLM.
+ */
+export function safetyStreamResponse(text: string): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`0:${JSON.stringify(text)}\n`));
+      controller.close();
+    },
+  });
+  return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
 }
 
 export interface StreamCoachingOptions {

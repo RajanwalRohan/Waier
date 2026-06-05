@@ -9,8 +9,9 @@ import {
   requireAuthOrRespond,
 } from "@/lib/api-utils";
 import { aiChatSchema } from "@/lib/validations/ai-chat";
-import { streamCoachingResponse } from "@/lib/ai";
+import { streamCoachingResponse, safetyStreamResponse } from "@/lib/ai";
 import type { UserCoachingContext, PriorConversationSummary } from "@/lib/ai";
+import { evaluateSafety } from "@/lib/wynn-safety";
 
 /**
  * POST /api/ai/chat
@@ -150,6 +151,28 @@ export async function POST(request: Request) {
           ? joined.slice(0, MEMORY_EXCERPT_CHARS) + "…"
           : joined;
       priorConversations.push({ title: c.title, excerpt, updatedAt: c.updatedAt });
+    }
+
+    // SAFETY PROTOCOL: deterministic pre-LLM check. If the message indicates a
+    // crisis or eating-disorder pattern, Wynn breaks character and returns a
+    // fixed safe response with resources, without ever reaching the model.
+    const safety = evaluateSafety(data.message, profile?.sex ?? null);
+    if (safety.type && safety.message) {
+      if (activeConversationId) {
+        await db.aIMessage.create({
+          data: { conversationId: activeConversationId, role: "assistant", content: safety.message },
+        });
+        await db.aIConversation.update({
+          where: { id: activeConversationId },
+          data: {
+            updatedAt: new Date(),
+            ...(activeConvIsEmpty
+              ? { title: data.message.trim().replace(/\s+/g, " ").slice(0, 60) || "New conversation" }
+              : {}),
+          },
+        });
+      }
+      return safetyStreamResponse(safety.message);
     }
 
     // Stream the response. When the stream finishes, persist the assistant
