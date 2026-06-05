@@ -87,6 +87,7 @@ model User {
   sentFriendRequests     Friendship[] @relation("FriendRequests")
   receivedFriendRequests Friendship[] @relation("FriendOf")
   championshipMemberships ChampionshipMember[]
+  progressPhotos          ProgressPhoto[]
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -507,6 +508,24 @@ model Goal {
   updatedAt   DateTime  @updatedAt
 
   @@index([userId, status])
+}
+
+// ─── Progress Photos (strict-tier private) ───────────────
+// Optional daily body photos and meal photos. Never public, never used for
+// training. Served only through an auth + ownership-checked route. In v1 the
+// image is held as a data URL; production moves to encrypted object storage
+// with signed URLs (the API shape stays the same).
+
+model ProgressPhoto {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  kind      String   @default("body") // body | meal
+  dataUrl   String   // base64 data URL (strict tier)
+  createdAt DateTime @default(now())
+
+  @@index([userId, date])
 }
 
 // ─── Waier Championship League ───────────────────────────
