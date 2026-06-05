@@ -84,6 +84,8 @@ model User {
   medications           Medication[]
   medicalRecords        MedicalRecord[]
   labResults            LabResult[]
+  sentFriendRequests     Friendship[] @relation("FriendRequests")
+  receivedFriendRequests Friendship[] @relation("FriendOf")
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -119,6 +121,8 @@ model Profile {
   carbsGoalG          Int?     // daily carbohydrate target (grams)
   fatGoalG            Int?     // daily fat target (grams)
   hydrationGoalMl     Int?     // daily hydration target (mL) — tracked, not scored
+  username            String?  @unique // public handle for the social profile
+  privacySettings     String   @default("{}") // JSON: what friends/public can see
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -502,6 +506,24 @@ model Goal {
   updatedAt   DateTime  @updatedAt
 
   @@index([userId, status])
+}
+
+// ─── Social: Friendships ─────────────────────────────────
+// A directed request row (userId requested friendId). Accepted friendships are
+// symmetric in meaning; queries check both directions.
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userId    String   // requester
+  friendId  String   // recipient
+  status    String   @default("pending") // pending | accepted | blocked
+  createdAt DateTime @default(now())
+  requester User     @relation("FriendRequests", fields: [userId], references: [id], onDelete: Cascade)
+  recipient User     @relation("FriendOf", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
 }
 
 // ─── Medical Profile (strict-tier private) ───────────────
