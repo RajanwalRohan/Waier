@@ -564,7 +564,7 @@ model ProgressPhoto {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date      DateTime
   kind      String   @default("body") // body | meal
-  dataUrl   String   // base64 data URL (strict tier)
+  dataUrl   String   // AES-256-GCM encrypted image (strict tier); decrypted only on owner read
   createdAt DateTime @default(now())
 
   @@index([userId, date])

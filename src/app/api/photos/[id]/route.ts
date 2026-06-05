@@ -8,6 +8,7 @@ import {
   handleApiError,
   requireAuthOrRespond,
 } from "@/lib/api-utils";
+import { safeDecrypt } from "@/lib/crypto";
 
 /**
  * GET /api/photos/[id]
@@ -27,7 +28,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return errorResponse("Photo not found", 404);
     }
 
-    return successResponse({ id: photo.id, date: photo.date.toISOString().slice(0, 10), dataUrl: photo.dataUrl });
+    // Decrypt for the owner. safeDecrypt returns the value unchanged if it was
+    // stored before encryption was enabled (backward compatible).
+    return successResponse({ id: photo.id, date: photo.date.toISOString().slice(0, 10), dataUrl: safeDecrypt(photo.dataUrl) });
   } catch (err) {
     return handleApiError(err);
   }
