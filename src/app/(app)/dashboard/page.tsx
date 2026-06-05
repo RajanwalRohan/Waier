@@ -147,6 +147,18 @@ export default async function DashboardPage() {
         <svg className="h-5 w-5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
       </a>
 
+      {/* Championship League entry */}
+      <a href="/championship" className="card mb-6 flex items-center justify-between transition-all hover:shadow-glass-lg active:scale-[0.99]">
+        <div className="flex items-center gap-3">
+          <span className="text-amber-500"><TrophyIcon /></span>
+          <div>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">Championship League</p>
+            <p className="text-xs text-slate-400">Head-to-head matchups with friends</p>
+          </div>
+        </div>
+        <svg className="h-5 w-5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+      </a>
+
       {/* Friends entry */}
       <a href="/friends" className="card mb-6 flex items-center justify-between transition-all hover:shadow-glass-lg active:scale-[0.99]">
         <div className="flex items-center gap-3">
@@ -486,4 +498,7 @@ function BatteryIcon() {
 }
 function UsersIcon() {
   return (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>);
+}
+function TrophyIcon() {
+  return (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6M18 9h1.5a2.5 2.5 0 000-5H18M6 4h12v5a6 6 0 01-12 0V4zM12 15v4M8 21h8" /></svg>);
 }

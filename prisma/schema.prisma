@@ -86,6 +86,7 @@ model User {
   labResults            LabResult[]
   sentFriendRequests     Friendship[] @relation("FriendRequests")
   receivedFriendRequests Friendship[] @relation("FriendOf")
+  championshipMemberships ChampionshipMember[]
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -506,6 +507,37 @@ model Goal {
   updatedAt   DateTime  @updatedAt
 
   @@index([userId, status])
+}
+
+// ─── Waier Championship League ───────────────────────────
+// Season-based head-to-head matchup leagues. v1 computes matchups and
+// standings live for the current period (rotating round-robin); persisted
+// matchup history and playoffs are a later enhancement.
+
+model ChampionshipLeague {
+  id          String               @id @default(cuid())
+  name        String
+  joinCode    String               @unique
+  ownerId     String
+  statsConfig String               @default("[]") // JSON array of category keys
+  startDate   DateTime
+  matchupDays Int                  @default(14)
+  createdAt   DateTime             @default(now())
+  members     ChampionshipMember[]
+
+  @@index([ownerId])
+}
+
+model ChampionshipMember {
+  id       String             @id @default(cuid())
+  leagueId String
+  league   ChampionshipLeague @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime           @default(now())
+
+  @@unique([leagueId, userId])
+  @@index([userId])
 }
 
 // ─── Social: Friendships ─────────────────────────────────
