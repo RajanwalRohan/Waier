@@ -90,6 +90,7 @@ model User {
   progressPhotos          ProgressPhoto[]
   personalFoods           PersonalFood[]
   importJobs              ImportJob[]
+  leagueMemberships       LeagueMembership[]
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -567,6 +568,35 @@ model ProgressPhoto {
   createdAt DateTime @default(now())
 
   @@index([userId, date])
+}
+
+// ─── Open Leagues (anonymous weekly cohorts) ─────────────
+// A weekly cohort per (tier, ISO week). Members earn LP from verified activity
+// and improvement; top third promote, bottom third demote. v1 computes LP and
+// zones live for the current week; weekly rollover is a scheduled-job follow-up.
+
+model League {
+  id          String             @id @default(cuid())
+  tier        String
+  weekKey     String // ISO week, e.g. "2026-W23"
+  createdAt   DateTime           @default(now())
+  memberships LeagueMembership[]
+
+  @@unique([tier, weekKey])
+}
+
+model LeagueMembership {
+  id       String   @id @default(cuid())
+  leagueId String
+  league   League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekKey  String // one membership per user per week
+  joinedAt DateTime @default(now())
+
+  @@unique([userId, weekKey])
+  @@index([userId])
+  @@index([leagueId])
 }
 
 // ─── Waier Championship League ───────────────────────────

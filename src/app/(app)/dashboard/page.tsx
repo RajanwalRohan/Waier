@@ -171,6 +171,18 @@ export default async function DashboardPage() {
         <svg className="h-5 w-5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
       </a>
 
+      {/* Open League entry */}
+      <a href="/leagues" className="card mb-6 flex items-center justify-between transition-all hover:shadow-glass-lg active:scale-[0.99]">
+        <div className="flex items-center gap-3">
+          <span className="text-amber-500"><MedalIcon /></span>
+          <div>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">Open League</p>
+            <p className="text-xs text-slate-400">Weekly cohort, climb on League Points</p>
+          </div>
+        </div>
+        <svg className="h-5 w-5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+      </a>
+
       {/* Friends entry */}
       <a href="/friends" className="card mb-6 flex items-center justify-between transition-all hover:shadow-glass-lg active:scale-[0.99]">
         <div className="flex items-center gap-3">
@@ -558,4 +570,7 @@ function ScanIcon() {
 }
 function ImportIcon() {
   return (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>);
+}
+function MedalIcon() {
+  return (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="15" r="6" /><path d="M9 9.5L7 3h10l-2 6.5M12 13v4M10.5 15h3" /></svg>);
 }
