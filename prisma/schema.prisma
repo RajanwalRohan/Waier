@@ -88,6 +88,7 @@ model User {
   receivedFriendRequests Friendship[] @relation("FriendOf")
   championshipMemberships ChampionshipMember[]
   progressPhotos          ProgressPhoto[]
+  personalFoods           PersonalFood[]
 }
 
 // ─── Health / Fitness Profile ─────────────────────────────
@@ -508,6 +509,28 @@ model Goal {
   updatedAt   DateTime  @updatedAt
 
   @@index([userId, status])
+}
+
+// ─── Personal Food Library ───────────────────────────────
+// The "we'll remember it" fallback: when a barcode is not in Open Food Facts,
+// the user adds it once and Waier reuses it for instant logging next time.
+
+model PersonalFood {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  barcode   String
+  name      String
+  calories  Float?
+  proteinG  Float?
+  carbsG    Float?
+  fatG      Float?
+  fiberG    Float?
+  serving   String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, barcode])
+  @@index([userId])
 }
 
 // ─── Progress Photos (strict-tier private) ───────────────
