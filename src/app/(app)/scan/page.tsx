@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser";
 
 interface Food {
   found: boolean;
@@ -14,25 +15,60 @@ interface Food {
   fiberG?: number | null;
 }
 
-const inputCls = "w-full rounded-xl border border-slate-200 bg-white/60 px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800/60 dark:text-white";
+type Status = "scanning" | "denied" | "looking" | "found" | "notfound" | "logged";
+
+const inputCls =
+  "w-full rounded-xl border border-slate-200 bg-white/60 px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800/60 dark:text-white";
 
 export default function ScanPage() {
-  const [code, setCode] = useState("");
-  const [status, setStatus] = useState<"idle" | "looking" | "found" | "notfound" | "logged">("idle");
+  const [status, setStatus] = useState<Status>("scanning");
   const [food, setFood] = useState<Food | null>(null);
-  const [source, setSource] = useState<string>("");
-  const [cameraOn, setCameraOn] = useState(false);
-  const [canScan, setCanScan] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const rafRef = useRef<number | null>(null);
+  const [source, setSource] = useState("");
+  const [code, setCode] = useState("");
+  const [manual, setManual] = useState(false);
 
   // manual-add fields (for not-found)
   const [mName, setMName] = useState("");
   const [mCal, setMCal] = useState("");
   const [mPro, setMPro] = useState("");
 
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
+
+  function stopCamera() {
+    controlsRef.current?.stop();
+    controlsRef.current = null;
+  }
+
+  async function startCamera() {
+    stopCamera();
+    setStatus("scanning");
+    try {
+      const reader = new BrowserMultiFormatReader();
+      // Wait a tick so the <video> is mounted before we attach the stream.
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      if (!videoRef.current) return;
+      controlsRef.current = await reader.decodeFromConstraints(
+        { video: { facingMode: "environment" } },
+        videoRef.current,
+        (result) => {
+          if (result) {
+            const text = result.getText();
+            if (/^\d{8,14}$/.test(text)) {
+              stopCamera();
+              lookup(text);
+            }
+          }
+        },
+      );
+    } catch {
+      // Permission denied, no camera, or insecure context.
+      setStatus("denied");
+    }
+  }
+
   useEffect(() => {
-    setCanScan(typeof window !== "undefined" && "BarcodeDetector" in window);
+    startCamera();
     return () => stopCamera();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -53,44 +89,7 @@ export default function ScanPage() {
     }
   }
 
-  async function startCamera() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setCameraOn(true);
-      // @ts-expect-error BarcodeDetector is not yet in TS lib DOM types
-      const detector = new window.BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e"] });
-      const tick = async () => {
-        if (!videoRef.current) return;
-        try {
-          const codes = await detector.detect(videoRef.current);
-          if (codes.length > 0) {
-            stopCamera();
-            lookup(codes[0].rawValue);
-            return;
-          }
-        } catch {
-          /* keep scanning */
-        }
-        rafRef.current = requestAnimationFrame(tick);
-      };
-      rafRef.current = requestAnimationFrame(tick);
-    } catch {
-      setCameraOn(false);
-    }
-  }
-
-  function stopCamera() {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    const v = videoRef.current;
-    if (v?.srcObject) (v.srcObject as MediaStream).getTracks().forEach((t) => t.stop());
-    setCameraOn(false);
-  }
-
-  async function logMeal(name: string, macros: { calories?: number | null; proteinG?: number | null; carbsG?: number | null; fatG?: number | null; fiberG?: number | null }) {
+  async function logMeal(name: string, macros: Partial<Pick<Food, "calories" | "proteinG" | "carbsG" | "fatG" | "fiberG">>) {
     await fetch("/api/nutrition", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
@@ -112,11 +111,7 @@ export default function ScanPage() {
 
   async function addAndRemember() {
     if (!mName.trim() || !code) return;
-    const macros = {
-      calories: mCal ? Number(mCal) : undefined,
-      proteinG: mPro ? Number(mPro) : undefined,
-    };
-    // Remember it for next time.
+    const macros = { calories: mCal ? Number(mCal) : undefined, proteinG: mPro ? Number(mPro) : undefined };
     await fetch("/api/food/library", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
@@ -125,87 +120,108 @@ export default function ScanPage() {
     await logMeal(mName.trim(), macros);
   }
 
-  function reset() {
-    setStatus("idle");
+  function scanAgain() {
     setFood(null);
     setCode("");
+    setManual(false);
+    startCamera();
   }
 
   return (
     <div className="mx-auto max-w-lg px-5 pt-8 pb-24">
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Scan a food</h1>
-        <p className="mt-1 text-sm text-slate-400">Look up macros by barcode, powered by Open Food Facts.</p>
+        <p className="mt-1 text-sm text-slate-400">Point your camera at a barcode to log macros instantly.</p>
       </div>
 
-      {status === "logged" ? (
+      {/* Live camera scanner */}
+      {status === "scanning" && (
+        <div className="card overflow-hidden p-0">
+          <div className="relative aspect-[3/4] w-full bg-black">
+            <video ref={videoRef} className="h-full w-full object-cover" muted playsInline autoPlay />
+            {/* Viewfinder overlay */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="relative h-32 w-64 rounded-2xl" style={{ boxShadow: "0 0 0 100vmax rgba(0,0,0,0.45)" }}>
+                <span className="absolute -left-0.5 -top-0.5 h-6 w-6 rounded-tl-2xl border-l-4 border-t-4 border-white/90" />
+                <span className="absolute -right-0.5 -top-0.5 h-6 w-6 rounded-tr-2xl border-r-4 border-t-4 border-white/90" />
+                <span className="absolute -bottom-0.5 -left-0.5 h-6 w-6 rounded-bl-2xl border-b-4 border-l-4 border-white/90" />
+                <span className="absolute -bottom-0.5 -right-0.5 h-6 w-6 rounded-br-2xl border-b-4 border-r-4 border-white/90" />
+                <span className="absolute left-2 right-2 top-1/2 h-0.5 -translate-y-1/2 bg-accent-400/80" />
+              </div>
+            </div>
+            <p className="absolute bottom-4 left-0 right-0 text-center text-xs font-medium text-white/90" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>
+              Line the barcode up inside the frame
+            </p>
+          </div>
+          <div className="p-4">
+            <button onClick={() => { stopCamera(); setManual(true); setStatus("denied"); }} className="w-full text-center text-sm font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+              Enter barcode manually
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Camera unavailable / manual entry */}
+      {status === "denied" && (
+        <div className="card">
+          <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">{manual ? "Enter a barcode" : "Camera unavailable"}</p>
+          <p className="mb-3 text-xs text-slate-400">
+            {manual ? "Type the digits printed under the barcode." : "We could not open the camera (permission denied, or no camera on this device). You can still enter a barcode by hand."}
+          </p>
+          <div className="flex gap-2">
+            <input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="0123456789012" inputMode="numeric" className={inputCls} />
+            <button onClick={() => code.length >= 8 && lookup(code)} disabled={code.length < 8} className="rounded-xl bg-accent-500 px-4 text-sm font-semibold text-white disabled:opacity-40">Look up</button>
+          </div>
+          <button onClick={startCamera} className="mt-3 w-full rounded-xl bg-slate-100 py-2.5 text-sm font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">Try the camera</button>
+        </div>
+      )}
+
+      {status === "looking" && <div className="card text-center text-sm text-slate-400">Looking up {code}…</div>}
+
+      {/* Found */}
+      {status === "found" && food && (
+        <div className="card">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="font-semibold text-slate-900 dark:text-white">{food.name}</p>
+              <p className="text-xs text-slate-400">{food.serving ? `Per ${food.serving}` : ""}{source === "library" ? " · from your library" : " · Open Food Facts"}</p>
+            </div>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">{food.calories ?? "—"}<span className="text-xs text-slate-400"> kcal</span></p>
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+            <Macro label="Protein" value={food.proteinG} />
+            <Macro label="Carbs" value={food.carbsG} />
+            <Macro label="Fat" value={food.fatG} />
+          </div>
+          <button onClick={logFound} className="mt-4 w-full rounded-xl bg-accent-500 py-3 text-sm font-semibold text-white">Log this meal</button>
+          <button onClick={scanAgain} className="mt-2 w-full text-center text-sm font-medium text-slate-400">Scan another</button>
+        </div>
+      )}
+
+      {/* Not found */}
+      {status === "notfound" && (
+        <div className="card">
+          <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">Not in the database</p>
+          <p className="mb-3 text-xs text-slate-400">Add it once and Waier will remember it for next time.</p>
+          <div className="space-y-2">
+            <input value={mName} onChange={(e) => setMName(e.target.value)} placeholder="Food name" className={inputCls} />
+            <div className="flex gap-2">
+              <input value={mCal} onChange={(e) => setMCal(e.target.value)} placeholder="Calories" inputMode="numeric" className={inputCls} />
+              <input value={mPro} onChange={(e) => setMPro(e.target.value)} placeholder="Protein (g)" inputMode="numeric" className={inputCls} />
+            </div>
+            <button onClick={addAndRemember} disabled={!mName.trim()} className="w-full rounded-xl bg-accent-500 py-3 text-sm font-semibold text-white disabled:opacity-40">Log &amp; remember</button>
+            <button onClick={scanAgain} className="w-full text-center text-sm font-medium text-slate-400">Scan another</button>
+          </div>
+        </div>
+      )}
+
+      {/* Logged */}
+      {status === "logged" && (
         <div className="card text-center">
           <p className="text-3xl">✓</p>
           <p className="mt-2 font-semibold text-slate-900 dark:text-white">Logged to today&apos;s meals</p>
-          <button onClick={reset} className="mt-4 rounded-xl bg-accent-500 px-5 py-2 text-sm font-semibold text-white">Scan another</button>
+          <button onClick={scanAgain} className="mt-4 rounded-xl bg-accent-500 px-5 py-2 text-sm font-semibold text-white">Scan another</button>
         </div>
-      ) : (
-        <>
-          {/* Camera */}
-          {canScan && (
-            <div className="card mb-4">
-              {cameraOn ? (
-                <>
-                  <video ref={videoRef} className="mb-3 aspect-video w-full rounded-xl bg-black object-cover" muted playsInline />
-                  <button onClick={stopCamera} className="w-full rounded-xl bg-slate-100 py-2.5 text-sm font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">Stop camera</button>
-                </>
-              ) : (
-                <button onClick={startCamera} className="w-full rounded-xl bg-accent-500 py-3 text-sm font-semibold text-white">Scan with camera</button>
-              )}
-            </div>
-          )}
-
-          {/* Manual entry */}
-          <div className="card mb-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Enter a barcode</p>
-            <div className="flex gap-2">
-              <input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="0123456789012" inputMode="numeric" className={inputCls} />
-              <button onClick={() => code && lookup(code)} disabled={code.length < 8 || status === "looking"} className="rounded-xl bg-accent-500 px-4 text-sm font-semibold text-white disabled:opacity-40">
-                {status === "looking" ? "..." : "Look up"}
-              </button>
-            </div>
-          </div>
-
-          {/* Found */}
-          {status === "found" && food && (
-            <div className="card">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-semibold text-slate-900 dark:text-white">{food.name}</p>
-                  <p className="text-xs text-slate-400">{food.serving ? `Per ${food.serving}` : ""}{source === "library" ? " · from your library" : " · Open Food Facts"}</p>
-                </div>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{food.calories ?? "—"}<span className="text-xs text-slate-400"> kcal</span></p>
-              </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                <Macro label="Protein" value={food.proteinG} />
-                <Macro label="Carbs" value={food.carbsG} />
-                <Macro label="Fat" value={food.fatG} />
-              </div>
-              <button onClick={logFound} className="mt-4 w-full rounded-xl bg-accent-500 py-3 text-sm font-semibold text-white">Log this meal</button>
-            </div>
-          )}
-
-          {/* Not found — manual add + remember */}
-          {status === "notfound" && (
-            <div className="card">
-              <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">Not in the database</p>
-              <p className="mb-3 text-xs text-slate-400">Add it once and Waier will remember it for next time.</p>
-              <div className="space-y-2">
-                <input value={mName} onChange={(e) => setMName(e.target.value)} placeholder="Food name" className={inputCls} />
-                <div className="flex gap-2">
-                  <input value={mCal} onChange={(e) => setMCal(e.target.value)} placeholder="Calories" inputMode="numeric" className={inputCls} />
-                  <input value={mPro} onChange={(e) => setMPro(e.target.value)} placeholder="Protein (g)" inputMode="numeric" className={inputCls} />
-                </div>
-                <button onClick={addAndRemember} disabled={!mName.trim()} className="w-full rounded-xl bg-accent-500 py-3 text-sm font-semibold text-white disabled:opacity-40">Log &amp; remember</button>
-              </div>
-            </div>
-          )}
-        </>
       )}
     </div>
   );
